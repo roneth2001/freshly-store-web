@@ -9,6 +9,7 @@ export default function ShopDashboard() {
   const [products, setProducts] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [name, setName] = useState('No Name');
 
   useEffect(() => {
     fetchDashboardData();
@@ -36,6 +37,11 @@ export default function ShopDashboard() {
       const customersRes = await fetch('/api/customers');
       const customersData = await customersRes.json();
       setCustomers(customersData);
+
+      // Fetch shop name
+      const shopRes = await fetch('/api/shop/info');
+      const shopData = await shopRes.json();
+      setName(shopData.name || 'No Name');
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -53,9 +59,9 @@ export default function ShopDashboard() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-gray-50 w-screen">
       {/* Sidebar */}
-      <div className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-gray-900 text-white transition-all duration-300 flex flex-col`}>
+      <div className={`${sidebarOpen ? 'w-1/5' : 'w-1/12'} bg-gray-900 text-white transition-all duration-300 flex flex-col`}>
         <div className="p-6 flex items-center justify-between">
           {sidebarOpen && <h1 className="text-2xl font-bold">Freshly</h1>}
           <button onClick={() => setSidebarOpen(!sidebarOpen)} className="hover:bg-gray-800 p-2 rounded">
@@ -93,11 +99,11 @@ export default function ShopDashboard() {
       </div>
 
       {/* Main Content */}
-      <div className={`${sidebarOpen ? 'w-320' : 'w-363'} flex-1 flex flex-col overflow-hidden`}>
+      <div className={`flex-1 flex flex-col overflow-hidden transition-all duration-300`}>
         {/* Header */}
         <header className="bg-white border-b border-gray-200 px-8 py-6">
           <div className="flex justify-between items-center">
-            <h2 className="text-3xl font-bold text-gray-900">Dashboard</h2>
+            <h2 className="text-3xl font-bold text-gray-900">{name} - Dashboard</h2>
             <div className="flex items-center gap-6">
               <div className="relative">
                 <input 
