@@ -1,6 +1,30 @@
 import { useState } from 'react';
 import axios from "axios";
 import Footer from '../components/footer';
+import { useNavigate } from "react-router-dom";
+
+const Signup = () => {
+  const navigate = useNavigate();
+
+  const handleSignup = async (e) => {
+    e.preventDefault();
+
+    const res = await fetch("http://localhost:5000/api/auth/signup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, email, password }),
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      alert("Signup successful! Please login.");
+      navigate("/login"); // Redirect to login
+    } else {
+      alert(data.message || "Signup failed");
+    }
+  };
+};
 
 export default function SignUp() {
 
@@ -17,6 +41,8 @@ export default function SignUp() {
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [dashboardData, setDashboardData] = useState(null);
+  const navigate = useNavigate(); 
 
   // Handle input changes
   const handleChange = (e) => {
@@ -57,6 +83,8 @@ export default function SignUp() {
         password: ''
       });
 
+      navigate('/signin');
+
     } catch (err) {
       const msg = err.response?.data?.message || "Signup failed. Try again.";
       setErrorMessage(msg);
@@ -78,12 +106,7 @@ export default function SignUp() {
 
         {/* Success message */}
         {submitted ? (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
-            <p className="text-green-700 font-semibold text-lg mb-2">
-              ✓ Account Created Successfully!
-            </p>
-            <p className="text-gray-600">Welcome! Your account is ready.</p>
-          </div>
+          {}
         ) : (
           <div className="space-y-5">
             

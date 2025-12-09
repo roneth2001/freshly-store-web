@@ -1,9 +1,67 @@
-import React from "react";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Footer from "../components/footer";
 
 const SignIn = () => {
+  const navigate = useNavigate();
+  
+  const [formData, setFormData] = useState({
+    email: '',
+    password: ''
+  });
+  
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  // Handle input changes
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+    setError(''); // Clear error when user types
+  };
+
+  // Handle form submission
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/signin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Save token and user data to localStorage
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+
+        console.log('✅ Login successful:', data);
+
+        // Navigate to dashboard or home page
+        navigate('/dashboard');
+      } else {
+        // Show error message from backend
+        setError(data.message || 'Login failed');
+      }
+    } catch (error) {
+      console.error('❌ Login error:', error);
+      setError('Server error. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className="w-screen h-screen">
+    <div className="scroll-smooth h-screen w-screen flex flex-col">
 
       {/* FULLSCREEN BACKGROUND */}
       <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-green-400 via-green-500 to-green-700">
@@ -19,34 +77,53 @@ const SignIn = () => {
             Sign In
           </h2>
 
+          {/* Error Message */}
+          {error && (
+            <div className="bg-red-50 border border-red-300 rounded-lg p-3 mb-5">
+              <p className="text-red-700 text-sm text-center font-medium">
+                ⚠️ {error}
+              </p>
+            </div>
+          )}
+
           {/* Form */}
-          <form className="flex flex-col gap-5">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
 
             {/* Email */}
             <div>
               <label className="block mb-1 font-medium text-gray-700">Email</label>
               <input
                 type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
                 placeholder="Enter your email"
-                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                required
+                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-black"
               />
             </div>
 
             {/* Password */}
             <div>
-              <label className="block mb-1 font-medium text-gray-700">Password</label>
+              <label className="block mb-1 font-medium text-black ">Password</label>
               <input
                 type="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
                 placeholder="Enter your password"
-                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                required
+                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-black"
               />
             </div>
 
             {/* Sign In Button */}
             <button
-              className=" bg-green hover:bg-green-700 text-black p-3 rounded-lg font-semibold shadow-lg transition"
+              type="submit"
+              disabled={loading}
+              className="bg-green-600 hover:bg-green-700 text-white p-3 rounded-lg font-semibold shadow-lg transition disabled:bg-green-400 disabled:cursor-not-allowed"
             >
-              Sign In
+              {loading ? 'Signing in...' : 'Sign In'}
             </button>
           </form>
 
