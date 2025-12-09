@@ -9,44 +9,97 @@ export default function ShopDashboard() {
   const [products, setProducts] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [name, setName] = useState('No Name');
+  const [name, setName] = useState('Loading...');
+  const [userId, setUserId] = useState(null);
 
   useEffect(() => {
+    // Check if user is authenticated
+    const token = localStorage.getItem('token');
+    if (!token) {
+      window.location.href = '/login';
+      return;
+    }
     fetchDashboardData();
   }, []);
+
+  // Helper function to get auth headers
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('token');
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    };
+  };
 
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      // Fetch stats
-      const statsRes = await fetch('/api/dashboard/stats');
-      const statsData = await statsRes.json();
-      setStats(statsData);
-
-      // Fetch recent orders
-      const ordersRes = await fetch('/api/orders?limit=5');
-      const ordersData = await ordersRes.json();
-      setOrders(ordersData);
-
-      // Fetch products
-      const productsRes = await fetch('/api/products');
-      const productsData = await productsRes.json();
-      setProducts(productsData);
-
-      // Fetch customers
-      const customersRes = await fetch('/api/customers');
-      const customersData = await customersRes.json();
-      setCustomers(customersData);
-
-      // Fetch shop name
-      const shopRes = await fetch('/api/shop/info');
+      // Fetch shop info with auth token
+      const shopRes = await fetch('http://localhost:5000/api/dashboard/shop/info', {
+        headers: getAuthHeaders()
+      });
+      
+      if (shopRes.status === 401) {
+        // Token expired or invalid
+        handleLogout();
+        return;
+      }
+      
       const shopData = await shopRes.json();
       setName(shopData.name || 'No Name');
+      setUserId(shopData.userId);
+
+      // Fetch stats
+      const statsRes = await fetch('http://localhost:5000/api/dashboard/stats', {
+        headers: getAuthHeaders()
+      });
+      if (statsRes.ok) {
+        const statsData = await statsRes.json();
+        setStats(statsData);
+      }
+
+      // Fetch recent orders
+      const ordersRes = await fetch('http://localhost:5000/api/orders?limit=5', {
+        headers: getAuthHeaders()
+      });
+      if (ordersRes.ok) {
+        const ordersData = await ordersRes.json();
+        setOrders(ordersData);
+      }
+
+      // Fetch products
+      const productsRes = await fetch('http://localhost:5000/api/products', {
+        headers: getAuthHeaders()
+      });
+      if (productsRes.ok) {
+        const productsData = await productsRes.json();
+        setProducts(productsData);
+      }
+
+      // Fetch customers
+      const customersRes = await fetch('http://localhost:5000/api/customers', {
+        headers: getAuthHeaders()
+      });
+      if (customersRes.ok) {
+        const customersData = await customersRes.json();
+        setCustomers(customersData);
+      }
+
     } catch (error) {
       console.error('Error fetching data:', error);
+      // Check if it's an authentication error
+      if (error.message && error.message.includes('401')) {
+        handleLogout();
+      }
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.href = '/login';
   };
 
   const getStatusColor = (status) => {
@@ -56,6 +109,17 @@ export default function ShopDashboard() {
       case 'Pending': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  // Get initials from shop name
+  const getInitials = (shopName) => {
+    if (!shopName || shopName === 'Loading...') return 'JS';
+    return shopName
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
   };
 
   return (
@@ -91,7 +155,10 @@ export default function ShopDashboard() {
         </nav>
 
         <div className="p-4 border-t border-gray-800">
-          <button className="w-full flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-gray-800 transition">
+          <button 
+            onClick={handleLogout}
+            className="w-full flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-gray-800 transition"
+          >
             <LogOut size={20} />
             {sidebarOpen && <span>Logout</span>}
           </button>
@@ -112,8 +179,11 @@ export default function ShopDashboard() {
                   className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                 />
               </div>
-              <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center text-white font-bold cursor-pointer hover:bg-green-600">
-                JS
+              <div 
+                className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center text-white font-bold cursor-pointer hover:bg-green-600"
+                title={name}
+              >
+                {getInitials(name)}
               </div>
             </div>
           </div>
@@ -123,7 +193,7 @@ export default function ShopDashboard() {
         <main className="flex-1 overflow-auto p-8">
           {loading && (
             <div className="flex justify-center items-center h-full">
-              <Loader className="animate-spin" size={48} />
+              <Loader className="animate-spin text-green-600" size={48} />
             </div>
           )}
 
@@ -146,7 +216,9 @@ export default function ShopDashboard() {
                     </div>
                   ))
                 ) : (
-                  <p className="text-gray-600">No stats available</p>
+                  <div className="col-span-4 bg-white rounded-lg shadow p-6 text-center">
+                    <p className="text-gray-600">No stats available</p>
+                  </div>
                 )}
               </div>
 
@@ -303,10 +375,17 @@ export default function ShopDashboard() {
             </div>
           )}
 
-          {activeTab === 'settings' && (
+          {activeTab === 'settings' && !loading && (
             <div className="bg-white rounded-lg shadow p-8">
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">Settings</h3>
-              <p className="text-gray-600">Settings section coming soon...</p>
+              <h3 className="text-2xl font-bold text-gray-900 mb-6">Settings</h3>
+              <div className="space-y-4">
+                <div className="border-b pb-4">
+                  <h4 className="text-lg font-semibold text-gray-800 mb-2">Account Information</h4>
+                  <p className="text-sm text-gray-600">Shop Name: {name}</p>
+                  {userId && <p className="text-sm text-gray-600">User ID: {userId}</p>}
+                </div>
+                <p className="text-gray-600">Additional settings coming soon...</p>
+              </div>
             </div>
           )}
         </main>
